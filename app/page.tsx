@@ -2,35 +2,38 @@
 
 import { useEffect, useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
-import { fetchExcelData } from '../lib/fetchExcelData'
 
-const COLORS = ['#FF5733', '#33FF57', '#3357FF', '#FF33A6']
-
-export default function HomePage() {
+export default function Page() {
   const [data, setData] = useState<{ name: string; value: number }[]>([])
 
   useEffect(() => {
-    fetchExcelData().then(setData)
+    fetch('/api/csv')
+      .then((res) => res.json())
+      .then(setData)
   }, [])
 
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50', '#a4de6c', '#d0ed57', '#8dd1e1', '#ffbb28']
+
   return (
-    <main className="flex justify-center items-center h-screen bg-gray-100">
-      <div className="w-full max-w-2xl p-8">
-        <h1 className="text-4xl font-bold text-center mb-6">แผนภูมิวงกลมจากไฟล์ Excel (GitHub)</h1>
-        {data.length > 0 ? (
-          <PieChart width={400} height={400}>
-            <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={150} paddingAngle={5}>
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        ) : (
-          <p className="text-center">กำลังโหลดข้อมูล...</p>
-        )}
-      </div>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white p-6">
+      <h1 className="text-3xl font-bold mb-6">แผนภูมิจากข้อมูล Excel</h1>
+
+      {data.length > 0 ? (
+        <PieChart width={500} height={500}>
+          <Pie data={data} dataKey="value" nameKey="name" outerRadius={150} fill="#8884d8">
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
+      ) : (
+        <p>กำลังโหลดข้อมูล...</p>
+      )}
     </main>
   )
 }
+
+
+

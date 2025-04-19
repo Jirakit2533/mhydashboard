@@ -1,34 +1,34 @@
-// pages/api/csv.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { parse } from 'csv-parse/sync'
+import { NextResponse } from 'next/server'
+import * as XLSX from 'xlsx'
 
-const CSV_URL = process.env.CSV_URL
+export async function GET() {
+  const url = 'https://github.com/Jirakit2533/mhydashboard/raw/refs/heads/main/public/data.csv'
+  const res = await fetch(url)
+  const arrayBuffer = await res.arrayBuffer()
+  const data = new Uint8Array(arrayBuffer)
+  const workbook = XLSX.read(data, { type: 'array' })
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    if (!CSV_URL) {
-      return res.status(500).json({ error: 'Missing CSV_URL in environment variables' })
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as (string | number)[][]
+
+  const headers = rows[0].slice(1) // หมวดหมู่: แถวแรก (col 2 เป็นต้นไป)
+  const result: { name: string; value: number }[] = []
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i]
+    const variableName = row[0] // ชื่อตัวแปรใน col 1
+
+    for (let j = 1; j < row.length; j++) {
+      const category = headers[j - 1]
+      const value = Number(row[j])
+      if (!isNaN(value)) {
+        result.push({
+          name: `${variableName} - ${category}`,
+          value,
+        })
+      }
     }
-
-    const response = await fetch(CSV_URL)
-    const csvText = await response.text()
-
-    const records = parse(csvText, {
-      columns: false,
-      skip_empty_lines: true,
-    })
-
-    // แปลงเป็นรูปแบบ { name: string, value: number }
-    const data = records.map((row: string[]) => ({
-      name: row[0],
-      value: Number(row[1]),
-    }))
-
-    res.status(200).json(data)
-  } catch (error: unknown) {
-    res.status(500).json({ 
-      error: 'Failed to fetch or parse CSV', 
-      detail: error instanceof Error ? error.message : 'Unknown error' 
-    })
   }
+
+  return NextResponse.json(result)
 }
